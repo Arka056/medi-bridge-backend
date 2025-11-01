@@ -1,5 +1,5 @@
 import express from "express";
-import { signUp, signIn, updateProfile } from "../controllers/userController.js";
+import { signUp, signIn, updateProfile, getAllDoctors } from "../controllers/userController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { 
   initiatePhoneBooking,
@@ -7,14 +7,18 @@ import {
   handleDoctorChoice,
   handleDateChoice,
   handleSlotChoice,
-  confirmAppointment 
+  confirmAppointment ,
+  bookAppointment,
+  getAppointments,
 } from "../controllers/appointmentController.js";
+import { getUserOrDoctorById } from "../controllers/userController.js";
 
 const router = express.Router();
 
 router.post("/signup", signUp);
 router.post("/signin", signIn);
 router.put("/update", protect, updateProfile);
+router.get("/getAllDoctors", protect, getAllDoctors);
 
 // Appointment routes
 router.post("/initiate-phone-booking", protect, initiatePhoneBooking);
@@ -23,6 +27,10 @@ router.post("/handle-doctor-choice", protect, handleDoctorChoice);
 router.post("/handle-date-choice", protect, handleDateChoice);
 router.post("/handle-slot-choice", protect, handleSlotChoice);
 router.post("/confirm-appointment", protect, confirmAppointment);
+router.post("/bookAppointment", protect, bookAppointment);
+router.get("/getAppointments", protect, getAppointments);
+router.get("/info/:type/:id", protect, getUserOrDoctorById);
+
 
 export default router;
 

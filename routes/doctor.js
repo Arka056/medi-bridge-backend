@@ -1,11 +1,19 @@
 import express from "express";
+import jwt from "jsonwebtoken";
 import Doctor from "../models/doctorModel.js";
 import Appointment from "../models/Appointment.js";
-import jwt from "jsonwebtoken";
+import { protect } from "../middleware/authMiddleware.js";
+import {
+  setAvailability,
+  getDoctorAppointments,
+  updateAppointmentStatus,
+  getDoctorsBySpecialization,
+  getDoctorSlots, // ✅ Added this import
+} from "../controllers/doctorController.js";
 
 const router = express.Router();
 
-// Middleware to verify doctor token
+// ✅ Middleware to verify doctor token
 const verifyDoctorToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -69,62 +77,18 @@ router.post("/login", async (req, res) => {
 });
 
 // 📅 Set Availability
-router.post("/set-availability", verifyDoctorToken, async (req, res) => {
-  try {
-    const { date, slots } = req.body;
-
-    if (!date || !slots || !Array.isArray(slots)) {
-      return res.status(400).json({ message: "Date and valid slots array required" });
-    }
-
-    const doctor = await Doctor.findById(req.doctorId);
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
-
-    doctor.availableSlots.push({ date, slots });
-    await doctor.save();
-
-    res.status(200).json({ message: "Availability updated", doctor });
-  } catch (error) {
-    console.error("Availability error:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
+router.post("/set-availability", verifyDoctorToken, setAvailability);
 
 // 📖 Get Doctor Appointments
-router.get("/appointments", verifyDoctorToken, async (req, res) => {
-  try {
-    const appointments = await Appointment.find({ doctorId: req.doctorId })
-      .populate("userId", "name email")
-      .sort({ date: 1 });
-
-    res.status(200).json({ appointments });
-  } catch (error) {
-    console.error("Appointments error:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
+router.get("/appointments", verifyDoctorToken, getDoctorAppointments);
 
 // ✅ Update Appointment Status (accept/cancel)
-router.put("/appointments/:id/status", verifyDoctorToken, async (req, res) => {
-  try {
-    const { status } = req.body;
-    const { id } = req.params;
+router.put("/appointments/:id/status", verifyDoctorToken, updateAppointmentStatus);
 
-    const appointment = await Appointment.findOneAndUpdate(
-      { _id: id, doctorId: req.doctorId },
-      { status },
-      { new: true }
-    );
+// 🔍 Get doctors by specialization
+router.get("/getDoctorsBySpecialization", protect, getDoctorsBySpecialization);
 
-    if (!appointment)
-      return res.status(404).json({ message: "Appointment not found" });
-
-    res.status(200).json({ message: "Status updated", appointment });
-  } catch (error) {
-    console.error("Update status error:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
+// ⏰ Get doctor’s available slots
+router.get("/getDoctorSlots/:doctorId", protect, getDoctorSlots);
 
 export default router;
-
